@@ -8,7 +8,7 @@ fn main() {
     lists[1].sort();
 
     let part_one_result = zip(&lists[0], &lists[1])
-        .map(|(&a, &b)| a.abs_diff(b))
+        .map(|(a, b)| a.abs_diff(*b))
         .sum::<u32>();
 
     println!("{part_one_result}");
