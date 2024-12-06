@@ -2,22 +2,22 @@ use std::{collections::HashMap, fs::read_to_string};
 
 fn main() {
     let input = read_to_string("input").unwrap();
-    let (ordering, mut updates) = parse_input(&input);
+    let (ordering, mut page_updates) = parse_input(&input);
 
-    let part_one = updates
+    let part_one = page_updates
         .iter()
-        .filter(|update| is_ordered(update, &ordering))
-        .map(|update| update[update.len() / 2] as u32)
+        .filter(|pages| is_ordered(pages, &ordering))
+        .map(|pages| pages[pages.len() / 2] as u32)
         .sum::<u32>();
 
     println!("{part_one}");
 
-    let part_two = updates
+    let part_two = page_updates
         .iter_mut()
-        .filter(|update| !is_ordered(update, &ordering))
-        .map(|update| {
-            fix_update(update, &ordering);
-            update[update.len() / 2] as u32
+        .filter(|pages| !is_ordered(pages, &ordering))
+        .map(|pages| {
+            fix_page_ordering(pages, &ordering);
+            pages[pages.len() / 2] as u32
         })
         .sum::<u32>();
 
@@ -36,7 +36,7 @@ fn parse_input(input: &str) -> (HashMap<u8, Vec<u8>>, Vec<Vec<u8>>) {
         },
     );
 
-    let updates = input
+    let page_updates = input
         .lines()
         .skip_while(|line| !line.is_empty())
         .filter(|line| !line.is_empty())
@@ -47,16 +47,16 @@ fn parse_input(input: &str) -> (HashMap<u8, Vec<u8>>, Vec<Vec<u8>>) {
         })
         .collect();
 
-    (ordering, updates)
+    (ordering, page_updates)
 }
 
-fn is_ordered(mut update: &[u8], ordering: &HashMap<u8, Vec<u8>>) -> bool {
-    while !update.is_empty() {
-        let end_index = update.len() - 1;
-        let list = &ordering[&update[end_index]];
-        update = &update[..end_index];
+fn is_ordered(mut pages: &[u8], ordering: &HashMap<u8, Vec<u8>>) -> bool {
+    while !pages.is_empty() {
+        let end_index = pages.len() - 1;
+        let list = &ordering[&pages[end_index]];
+        pages = &pages[..end_index];
 
-        if update.iter().any(|page| list.contains(page)) {
+        if pages.iter().any(|page| list.contains(page)) {
             return false;
         }
     }
@@ -64,21 +64,21 @@ fn is_ordered(mut update: &[u8], ordering: &HashMap<u8, Vec<u8>>) -> bool {
     true
 }
 
-fn fix_update(mut update: &mut [u8], ordering: &HashMap<u8, Vec<u8>>) {
-    while !update.is_empty() {
-        let index = update
+fn fix_page_ordering(mut pages: &mut [u8], ordering: &HashMap<u8, Vec<u8>>) {
+    while !pages.is_empty() {
+        let index = pages
             .iter()
             .position(|page| {
                 let list = &ordering[page];
-                update
+                pages
                     .iter()
                     .filter(|&p| p != page)
                     .all(|page| !list.contains(page))
             })
             .unwrap();
 
-        let end_index = update.len() - 1;
-        update.swap(index, end_index);
-        update = &mut update[..end_index];
+        let end_index = pages.len() - 1;
+        pages.swap(index, end_index);
+        pages = &mut pages[..end_index];
     }
 }
