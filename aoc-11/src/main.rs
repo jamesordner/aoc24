@@ -40,7 +40,7 @@ fn recurse_next(
     sum: &mut u64,
 ) {
     // check base case (no more iterations)
-    let Some(next_iteration) = iterations.checked_sub(1) else {
+    let Some(remaining_iterations) = iterations.checked_sub(1) else {
         *sum += 1;
         return;
     };
@@ -48,7 +48,7 @@ fn recurse_next(
     // check cache
     if let Some(count) = cache
         .get(&value)
-        .and_then(|chain| chain.get(&next_iteration))
+        .and_then(|chain| chain.get(&remaining_iterations))
         .copied()
     {
         *sum += count;
@@ -60,26 +60,26 @@ fn recurse_next(
     let mut local_sum = 0;
 
     if value == 0 {
-        recurse_next(1, next_iteration, cache, &mut local_sum);
+        recurse_next(1, remaining_iterations, cache, &mut local_sum);
     } else {
         let log = value.ilog10();
         if log % 2 == 0 {
             // odd number of digits
-            recurse_next(value * 2024, next_iteration, cache, &mut local_sum);
+            recurse_next(value * 2024, remaining_iterations, cache, &mut local_sum);
         } else {
             // even number of digits
             let pow = 10u64.pow((log + 1) / 2);
             let top_digits = value / pow;
             let bottom_digits = value - top_digits * pow;
-            recurse_next(top_digits, next_iteration, cache, &mut local_sum);
-            recurse_next(bottom_digits, next_iteration, cache, &mut local_sum);
+            recurse_next(top_digits, remaining_iterations, cache, &mut local_sum);
+            recurse_next(bottom_digits, remaining_iterations, cache, &mut local_sum);
         }
     }
 
     cache
         .entry(value)
         .or_default()
-        .insert(next_iteration, local_sum);
+        .insert(remaining_iterations, local_sum);
 
     *sum += local_sum;
 }
