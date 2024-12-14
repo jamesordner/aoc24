@@ -1,42 +1,85 @@
+use std::collections::HashMap;
+
+type IntType = u64;
+
 fn main() {
     let input = parse_input(include_str!("../input"));
 
-    let mut buffers = [input, Vec::new()];
+    // map<stone value, map<remaining iteration count, stone count at iteration>>
+    let mut cache = HashMap::new();
 
-    for i in 0..25 {
-        let (old_buffer, new_buffer) = buffers.split_at_mut(1);
-        let old_buffer = &mut old_buffer[0];
-        let new_buffer = &mut new_buffer[0];
+    println!("{}", count_stones(&input, 25, &mut cache));
+    println!("{}", count_stones(&input, 75, &mut cache));
+}
 
-        for stone in old_buffer.iter() {
-            insert_new_stone(stone, new_buffer);
-        }
+fn parse_input(input: &str) -> Vec<IntType> {
+    input
+        .split_whitespace()
+        .map(|val| val.parse().unwrap())
+        .collect()
+}
 
-        old_buffer.clear();
-        buffers.rotate_left(1);
+fn count_stones(
+    starting_values: &[IntType],
+    iterations: usize,
+    cache: &mut HashMap<IntType, HashMap<usize, u64>>,
+) -> u64 {
+    let mut sum = 0;
+
+    for &value in starting_values {
+        recurse_next(value, iterations, cache, &mut sum);
     }
 
-    dbg!(buffers[0].len());
+    sum
 }
 
-fn parse_input(input: &str) -> Vec<String> {
-    input.split_whitespace().map(|val| val.to_owned()).collect()
-}
+fn recurse_next(
+    value: IntType,
+    iterations: usize,
+    cache: &mut HashMap<IntType, HashMap<usize, u64>>,
+    sum: &mut u64,
+) {
+    // check base case (no more iterations)
+    let Some(next_iteration) = iterations.checked_sub(1) else {
+        *sum += 1;
+        return;
+    };
 
-fn insert_new_stone(stone: &str, stones: &mut Vec<String>) {
-    if stone.len() == 1 && stone.starts_with('0') {
-        stones.push("1".to_owned());
-    } else if stone.len() % 2 == 0 {
-        let half = stone.len() / 2;
-        stones.push(stone[..half].to_owned());
+    // check cache
+    if let Some(count) = cache
+        .get(&value)
+        .and_then(|chain| chain.get(&next_iteration))
+        .copied()
+    {
+        *sum += count;
+        return;
+    }
 
-        let right = stone[half..].trim_start_matches('0');
-        if right.is_empty() {
-            stones.push("0".to_owned());
-        } else {
-            stones.push(right.to_owned());
-        }
+    // calculate the final stone count for the remaining iterations
+
+    let mut local_sum = 0;
+
+    if value == 0 {
+        recurse_next(1, next_iteration, cache, &mut local_sum);
     } else {
-        stones.push((stone.parse::<u128>().unwrap() * 2024).to_string());
+        let log = value.ilog10();
+        if log % 2 == 0 {
+            // odd number of digits
+            recurse_next(value * 2024, next_iteration, cache, &mut local_sum);
+        } else {
+            // even number of digits
+            let pow = 10u64.pow((log + 1) / 2);
+            let top_digits = value / pow;
+            let bottom_digits = value - top_digits * pow;
+            recurse_next(top_digits, next_iteration, cache, &mut local_sum);
+            recurse_next(bottom_digits, next_iteration, cache, &mut local_sum);
+        }
     }
+
+    cache
+        .entry(value)
+        .or_default()
+        .insert(next_iteration, local_sum);
+
+    *sum += local_sum;
 }
